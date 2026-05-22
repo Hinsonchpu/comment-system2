@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二手交換平台</title>
+    <style>
+        :root {
+            --bg: #f5f2ed;
+            --surface: #ffffff;
+            --primary: #e8873a;
+            --primary-dark: #c96e2a;
+            --primary-light: #fef3ea;
+            --active-color: #3a8c5c;
+            --active-bg: #edf7f1;
+            --done-color: #8c8c8c;
+            --done-bg: #f2f2f2;
+            --cancelled-color: #9b7e6b;
+            --cancelled-bg: #f8f4f0;
+            --text: #2c2416;
+            --text-secondary: #6b5e4f;
+            --text-muted: #9b8e7f;
+            --border: #e0d8cc;
+            --border-light: #f0e8da;
+            --shadow-sm: 0 1px 3px rgba(44, 36, 22, 0.06), 0 1px 2px rgba(44, 36, 22, 0.04);
+            --shadow-md: 0 4px 16px rgba(44, 36, 22, 0.08), 0 2px 6px rgba(44, 36, 22, 0.04);
+            --shadow-lg: 0 8px 30px rgba(44, 36, 22, 0.10), 0 3px 10px rgba(44, 36, 22, 0.05);
+            --radius-sm: 8px;
+            --radius: 14px;
+            --radius-lg: 18px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            background-image:
+                radial-gradient(ellipse at 15% 10%, rgba(232, 135, 58, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 85% 90%, rgba(58, 140, 92, 0.03) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 50%, rgba(180, 160, 130, 0.03) 0%, transparent 70%);
+        }
+
+        .app-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border-light);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        .header-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 28px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #f5a623, #e8873a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(232, 135, 58, 0.25);
+        }
+
+        .header-title {
+            font-size: 1.45rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--text);
+        }
+        .header-subtitle {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            display: block;
+            letter-spacing: 0.02em;
+        }
+
+        .app-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px;
+        }
+
+        .form-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 28px 30px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+            transition: box-shadow var(--transition);
+        }
+        .form-card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .form-card__title {
+            font-size: 1.05rem;
+            font-weight: 650;
+            margin-bottom: 20px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.01em;
+        }
+        .form-card__title .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: inline-block;
+        }
+        .form-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            min-width: 160px;
+        }
+        .form-group label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.01em;
+        }
+        .form-group label .required-star {
+            color: #e8553a;
+            margin-left: 2px;
+        }
+        .form-group input {
+            padding: 11px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all var(--transition);
+            background: #fdfcf9;
+            color: var(--text);
+            outline: none;
+            width: 100%;
+        }
+        .form-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(232, 135, 58, 0.1);
+            background: #fff;
+        }
+        .btn-submit {
+            padding: 11px 28px;
+            background: linear-gradient(135deg, #f5a623, #e8873a);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-weight: 650;
+            cursor: pointer;
+            transition: all var(--transition);
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            box-shadow: 0 3px 12px rgba(232, 135, 58, 0.3);
+            align-self: flex-end;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #f8b840, #ed9545);
+            box-shadow: 0 5px 18px rgba(232, 135, 58, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .filter-group {
+            display: flex;
+            gap: 4px;
+            background: var(--surface);
+            border-radius: 30px;
+            padding: 5px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .filter-btn {
+            padding: 9px 20px;
+            border-radius: 26px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 550;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .filter-btn:hover {
+            color: var(--text);
+            background: rgba(0, 0, 0, 0.03);
+        }
+        .filter-btn--active {
+            background: var(--text);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(44, 36, 22, 0.2);
+        }
+        .record-count {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .record-count strong {
+            color: var(--text);
+            font-weight: 650;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+        }
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            transition: all var(--transition);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .card--done {
+            background: var(--done-bg);
+            border-color: #e8e3da;
+            opacity: 0.78;
+        }
+        .card--cancelled {
+            background: var(--cancelled-bg);
+            border-color: #e2d9cf;
+            opacity: 0.8;
+        }
+        .card__status-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+        .card--active .card__status-badge {
+            background: var(--active-bg);
+            color: var(--active-color);
+        }
+        .card--done .card__status-badge {
+            background: #e0dcd5;
+            color: #8c8c8c;
+        }
+        .card--cancelled .card__status-badge {
+            background: #e6ddd4;
+            color: var(--cancelled-color);
+        }
+        .card__title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
+            padding-right: 80px;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .card--done .card__title {
+            color: #7a7a7a;
+            text-decoration: line-through;
+        }
+        .card--cancelled .card__title {
+            color: #8a7a6c;
+            font-style: italic;
+        }
+        .card__price {
+            font-size: 1.55rem;
+            font-weight: 750;
+            color: #d4782f;
+            font-family: var(--font-mono);
+        }
+        .card--done .card__price,
+        .card--cancelled .card__price {
+            color: #a09888;
+        }
+        .card__desc {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .card__meta {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card__actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: 22px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 550;
+            transition: all var(--transition);
+            font-family: inherit;
+            color: var(--text-secondary);
+            flex: 1;
+            white-space: nowrap;
+        }
+        .btn-action:hover {
+            background: #fdfaf6;
+            border-color: #c4b8a2;
+        }
+        .btn-action--primary {
+            border-color: #d4c8b0;
+            color: #8c6d4f;
+        }
+        .btn-action--primary:hover {
+            background: #fef9f2;
+            border-color: #c49a6c;
+        }
+        .btn-action--warning {
+            border-color: #e0d0c0;
+            color: #8a6d5c;
+        }
+        .btn-action--warning:hover {
+            background: #faf5f0;
+            border-color: #c4a88c;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+            grid-column: 1 / -1;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            background: #2c2416;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 0.88rem;
+            font-weight: 550;
+            z-index: 999;
+            pointer-events: none;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+        }
+        .toast--visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .app-container { padding: 16px; }
+            .form-card { padding: 20px 18px; }
+            .form-row { flex-direction: column; gap: 10px; }
+            .form-group { min-width: 100%; }
+            .btn-submit { width: 100%; justify-content: center; }
+            .card-grid { grid-template-columns: 1fr; }
+            .filter-btn { padding: 8px 16px; font-size: 0.82rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="header-icon">🔄</div>
+            <div>
+                <span class="header-title">二手交換平台</span>
+                <span class="header-subtitle">讓閒置物品找到新主人</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="app-container">
+        <section class="form-card">
+            <div class="form-card__title"><span class="dot"></span> 刊登二手物品</div>
+            <form id="item-form" novalidate>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-itemName">物品名稱<span class="required-star">*</span></label>
+                        <input type="text" id="input-itemName" name="itemName" placeholder="例如：iPhone 14 Pro" required maxlength="80" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-price">價格<span class="required-star">*</span></label>
+                        <input type="number" id="input-price" name="price" placeholder="例如：15000" required min="1" max="99999999" step="1" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-description">物品描述</label>
+                        <input type="text" id="input-description" name="description" placeholder="簡短描述物品狀況（選填）" maxlength="200" autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn-submit"><span>＋</span> 刊登物品</button>
+                </div>
+            </form>
+        </section>
+
+        <div class="toolbar">
+            <div class="filter-group" role="group" aria-label="篩選狀態">
+                <button class="filter-btn filter-btn--active" data-filter="all">📋 全部</button>
+                <button class="filter-btn" data-filter="active">🟢 販售中</button>
+                <button class="filter-btn" data-filter="done">🏷️ 已售出</button>
+            </div>
+            <span class="record-count" id="record-count">共 <strong>0</strong> 筆物品</span>
+        </div>
+
+        <section class="card-grid" id="card-grid" aria-label="物品列表"></section>
+    </main>
+
+    <div class="toast" id="toast" aria-live="polite"></div>
+
+    <script>
+        (function() {
+            const STORAGE_KEY = 'records';
+            const TOAST_DURATION = 2000;
+
+            const form = document.getElementById('item-form');
+            const inputItemName = document.getElementById('input-itemName');
+            const inputPrice = document.getElementById('input-price');
+            const inputDescription = document.getElementById('input-description');
+            const cardGrid = document.getElementById('card-grid');
+            const recordCountEl = document.getElementById('record-count');
+            const toastEl = document.getElementById('toast');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+
+            let currentFilter = 'all';
+            let toastTimer = null;
+
+            // ========== 核心資料函式 ==========
+            function loadData() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (!raw) return [];
+                    const parsed = JSON.parse(raw);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    console.warn('loadData 失敗', e);
+                    return [];
+                }
+            }
+
+            function saveData(record) {
+                if (!record || typeof record !== 'object') return;
+                const records = loadData();
+                records.push(record);
+                _writeToStorage(records);
+            }
+
+            function updateRecord(id, changes) {
+                if (!id || !changes) return;
+                const records = loadData();
+                const index = records.findIndex(r => r.id === id);
+                if (index === -1) return;
+                records[index] = { ...records[index], ...changes };
+                _writeToStorage(records);
+            }
+
+            function createRecord(formData) {
+                return {
+                    id: _generateId(),
+                    createdAt: new Date().toISOString(),
+                    status: 'active',
+                    itemName: String(formData.itemName || '').trim(),
+                    price: Number(formData.price) || 0,
+                    description: String(formData.description || '').trim(),
+                };
+            }
+
+            // ========== 渲染 ==========
+            function renderList(recordsToShow) {
+                if (!Array.isArray(recordsToShow)) return;
+
+                const allRecords = loadData();
+                const activeCount = allRecords.filter(r => r.status === 'active').length;
+                const doneCount = allRecords.filter(r => r.status === 'done').length;
+                recordCountEl.innerHTML = `共 <strong>${allRecords.length}</strong> 筆物品（販售中：<strong>${activeCount}</strong> / 已售出：<strong>${doneCount}</strong>）`;
+
+                cardGrid.innerHTML = '';
+
+                if (recordsToShow.length === 0) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'empty-state';
+                    let icon = '📭', text = '還沒有任何物品', sub = '快來刊登你的第一件二手物品吧！';
+                    if (currentFilter === 'active') {
+                        icon = '🛒'; text = '目前沒有販售中的物品';
+                    } else if (currentFilter === 'done') {
+                        icon = '📦'; text = '尚無已售出的物品';
+                    }
+                    emptyDiv.innerHTML = `<span class="empty-state__icon">${icon}</span><p>${text}</p><p style="color:#bfb5a5;">${sub}</p>`;
+                    cardGrid.appendChild(emptyDiv);
+                    return;
+                }
+
+                recordsToShow.forEach(record => {
+                    cardGrid.appendChild(_buildCardElement(record));
+                });
+            }
+
+            function _buildCardElement(record) {
+                const status = record.status;
+                const card = document.createElement('article');
+                card.className = `card card--${status}`;
+                card.setAttribute('data-id', record.id);
+
+                // 徽章
+                const badgeText = status === 'active' ? '販售中' : (status === 'done' ? '已售出' : '已下架');
+                const badge = document.createElement('span');
+                badge.className = 'card__status-badge';
+                badge.textContent = badgeText;
+
+                // 內容
+                const title = document.createElement('h3');
+                title.className = 'card__title';
+                title.textContent = record.itemName || '(未命名物品)';
+
+                const price = document.createElement('p');
+                price.className = 'card__price';
+                price.textContent = 'NT$ ' + Number(record.price).toLocaleString('zh-TW');
+
+                const desc = document.createElement('p');
+                desc.className = 'card__desc';
+                desc.textContent = record.description || '尚無描述';
+
+                const meta = document.createElement('div');
+                meta.className = 'card__meta';
+                const timeStr = _formatDate(record.createdAt);
+                meta.innerHTML = `🕐 <span>刊登於 ${timeStr}</span>`;
+
+                // 動作區塊
+                const actions = document.createElement('div');
+                actions.className = 'card__actions';
+
+                if (status === 'active') {
+                    // 標記已售出
+                    const doneBtn = document.createElement('button');
+                    doneBtn.className = 'btn-action btn-action--primary';
+                    doneBtn.innerHTML = '✅ 標記已售出';
+                    doneBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateRecord(record.id, { status: 'done' });
+                        _refreshDisplay();
+                        _showToast('🏷️ 已標記為「已售出」');
+                    });
+                    // 取消上架（新增功能）
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'btn-action btn-action--warning';
+                    cancelBtn.innerHTML = '🚫 取消上架';
+                    cancelBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateRecord(record.id, { status: 'cancelled' });
+                        _refreshDisplay();
+                        _showToast('📴 物品已下架');
+                    });
+                    actions.appendChild(doneBtn);
+                    actions.appendChild(cancelBtn);
+                } else if (status === 'done') {
+                    const relistBtn = document.createElement('button');
+                    relistBtn.className = 'btn-action btn-action--primary';
+                    relistBtn.innerHTML = '🔄 重新上架';
+                    relistBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateRecord(record.id, { status: 'active' });
+                        _refreshDisplay();
+                        _showToast('🟢 已重新上架為「販售中」');
+                    });
+                    actions.appendChild(relistBtn);
+                } else if (status === 'cancelled') {
+                    const relistBtn = document.createElement('button');
+                    relistBtn.className = 'btn-action btn-action--primary';
+                    relistBtn.innerHTML = '🔄 重新上架';
+                    relistBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateRecord(record.id, { status: 'active' });
+                        _refreshDisplay();
+                        _showToast('🟢 已重新上架為「販售中」');
+                    });
+                    actions.appendChild(relistBtn);
+                }
+
+                card.appendChild(badge);
+                card.appendChild(title);
+                card.appendChild(price);
+                card.appendChild(desc);
+                card.appendChild(meta);
+                card.appendChild(actions);
+                return card;
+            }
+
+            // ========== 輔助函式 ==========
+            function _formatDate(isoStr) {
+                if (!isoStr) return '未知時間';
+                const d = new Date(isoStr);
+                if (isNaN(d.getTime())) return '未知時間';
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            }
+
+            function _generateId() {
+                if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+                return 'rec_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 10);
+            }
+
+            function _writeToStorage(records) {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+                } catch (e) {
+                    _showToast('⚠️ 儲存失敗，請檢查瀏覽器儲存空間');
+                }
+            }
+
+            function _showToast(message) {
+                if (toastTimer) clearTimeout(toastTimer);
+                toastEl.textContent = message;
+                toastEl.classList.add('toast--visible');
+                toastTimer = setTimeout(() => {
+                    toastEl.classList.remove('toast--visible');
+                    toastTimer = null;
+                }, TOAST_DURATION);
+            }
+
+            function _refreshDisplay() {
+                const all = loadData();
+                let filtered;
+                if (currentFilter === 'active') filtered = all.filter(r => r.status === 'active');
+                else if (currentFilter === 'done') filtered = all.filter(r => r.status === 'done');
+                else filtered = [...all]; // all 包含 cancelled
+                renderList(filtered);
+            }
+
+            // ========== 事件綁定 ==========
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const itemName = inputItemName.value.trim();
+                const priceRaw = inputPrice.value.trim();
+                if (!itemName) { _showToast('⚠️ 請填寫物品名稱'); inputItemName.focus(); return; }
+                if (!priceRaw || isNaN(Number(priceRaw)) || Number(priceRaw) < 1) {
+                    _showToast('⚠️ 價格必須是大於 0 的數字'); inputPrice.focus(); return;
+                }
+                const record = createRecord({
+                    itemName,
+                    price: Number(priceRaw),
+                    description: inputDescription.value
+                });
+                saveData(record);
+                form.reset();
+                inputItemName.focus();
+                _refreshDisplay();
+                _showToast('✅ 物品刊登成功！');
+            });
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const filterVal = btn.getAttribute('data-filter');
+                    if (currentFilter === filterVal) return;
+                    currentFilter = filterVal;
+                    filterBtns.forEach(b => b.classList.remove('filter-btn--active'));
+                    btn.classList.add('filter-btn--active');
+                    _refreshDisplay();
+                });
+            });
+
+            // 初始載入
+            _refreshDisplay();
+            inputItemName.focus();
+            console.log('✅ 二手交換平台（含取消上架）初始化完成');
+        })();
+    </script>
+</body>
+</html>
