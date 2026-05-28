@@ -423,7 +423,7 @@
 <body>
     <header class="app-header">
         <div class="header-inner">
-            <div class="header-icon">🔄</div>
+            <div class="header-icon">??</div>
             <div>
                 <span class="header-title">二手交換平台</span>
                 <span class="header-subtitle">讓閒置物品找到新主人</span>
@@ -455,9 +455,9 @@
 
         <div class="toolbar">
             <div class="filter-group" role="group" aria-label="篩選狀態">
-                <button class="filter-btn filter-btn--active" data-filter="all">📋 全部</button>
-                <button class="filter-btn" data-filter="active">🟢 販售中</button>
-                <button class="filter-btn" data-filter="done">🏷️ 已售出</button>
+                <button class="filter-btn filter-btn--active" data-filter="all">?? 全部</button>
+                <button class="filter-btn" data-filter="active">?? 販售中</button>
+                <button class="filter-btn" data-filter="done">??? 已售出</button>
             </div>
             <span class="record-count" id="record-count">共 <strong>0</strong> 筆物品</span>
         </div>
@@ -469,6 +469,8 @@
 
     <script>
         (function() {
+            // ========== 設定 ==========
+            const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwrTASvCj4_HzK_GIascz159wdYPj2AfcusG72H353JIEEIcp0Pumc09vP8n6aN0PNgw/exec";
             const STORAGE_KEY = 'records';
             const TOAST_DURATION = 2000;
 
@@ -483,6 +485,71 @@
 
             let currentFilter = 'all';
             let toastTimer = null;
+
+            // ========== Google Sheets 連接 ==========
+            function normalizeRecord(sheetRecord) {
+                // 建立大小寫不敏感的映射表
+                const mapping = {
+                    'id': 'id',
+                    'createdat': 'createdAt',
+                    'status': 'status',
+                    'itemname': 'itemName',
+                    'price': 'price',
+                    'description': 'description'
+                };
+                const normalized = {};
+                Object.keys(sheetRecord).forEach(key => {
+                    const lowerKey = key.toLowerCase().trim();
+                    const frontendKey = mapping[lowerKey];
+                    if (frontendKey) {
+                        let value = sheetRecord[key];
+                        if (frontendKey === 'price') {
+                            value = Number(value) || 0;
+                        }
+                        if (frontendKey === 'status') {
+                            const validStatuses = ['active', 'done', 'cancelled'];
+                            if (!validStatuses.includes(value)) {
+                                value = 'active';
+                            }
+                        }
+                        normalized[frontendKey] = value;
+                    } else {
+                        // 保留未映射的欄位（可擴充）
+                        normalized[key] = sheetRecord[key];
+                    }
+                });
+                return normalized;
+            }
+
+            async function syncToSheet(payload) {
+                try {
+                    const response = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if (!result.ok) {
+                        console.warn('syncToSheet 失敗:', result.error);
+                    }
+                } catch (err) {
+                    console.warn('syncToSheet 網路錯誤:', err);
+                }
+            }
+
+            async function fetchRecordsFromSheet() {
+                try {
+                    const response = await fetch(APPS_SCRIPT_URL);
+                    const data = await response.json();
+                    if (data.ok && Array.isArray(data.records)) {
+                        return data.records.map(normalizeRecord);
+                    }
+                    return null;
+                } catch (err) {
+                    console.warn('fetchRecordsFromSheet 失敗:', err);
+                    return null;
+                }
+            }
 
             // ========== 核心資料函式 ==========
             function loadData() {
@@ -502,6 +569,8 @@
                 const records = loadData();
                 records.push(record);
                 _writeToStorage(records);
+                // 同步到 Google Sheet
+                syncToSheet({ action: 'create', record });
             }
 
             function updateRecord(id, changes) {
@@ -511,6 +580,8 @@
                 if (index === -1) return;
                 records[index] = { ...records[index], ...changes };
                 _writeToStorage(records);
+                // 同步到 Google Sheet
+                syncToSheet({ action: 'update', id, changes });
             }
 
             function createRecord(formData) {
@@ -522,6 +593,29 @@
                     price: Number(formData.price) || 0,
                     description: String(formData.description || '').trim(),
                 };
+            }
+
+            // ========== 初始化：優先從 Sheet 載入 ==========
+            async function initData() {
+                const sheetRecords = await fetchRecordsFromSheet();
+                if (sheetRecords && sheetRecords.length > 0) {
+                    // Sheet 有資料，覆蓋 localStorage
+                    _writeToStorage(sheetRecords);
+                    console.log('? 從 Google Sheet 載入 ' + sheetRecords.length + ' 筆記錄');
+                } else if (sheetRecords && sheetRecords.length === 0) {
+                    // Sheet 存在但無資料，將 localStorage 同步上去
+                    const localRecords = loadData();
+                    if (localRecords.length > 0) {
+                        console.log('?? 將 localStorage 的 ' + localRecords.length + ' 筆記錄同步至 Sheet');
+                        for (const rec of localRecords) {
+                            await syncToSheet({ action: 'create', record: rec });
+                        }
+                    }
+                } else {
+                    // 無法連線 Sheet，使用 localStorage
+                    console.log('?? 無法連線 Google Sheet，使用 localStorage 離線資料');
+                }
+                _refreshDisplay();
             }
 
             // ========== 渲染 ==========
@@ -538,11 +632,11 @@
                 if (recordsToShow.length === 0) {
                     const emptyDiv = document.createElement('div');
                     emptyDiv.className = 'empty-state';
-                    let icon = '📭', text = '還沒有任何物品', sub = '快來刊登你的第一件二手物品吧！';
+                    let icon = '??', text = '還沒有任何物品', sub = '快來刊登你的第一件二手物品吧！';
                     if (currentFilter === 'active') {
-                        icon = '🛒'; text = '目前沒有販售中的物品';
+                        icon = '??'; text = '目前沒有販售中的物品';
                     } else if (currentFilter === 'done') {
-                        icon = '📦'; text = '尚無已售出的物品';
+                        icon = '??'; text = '尚無已售出的物品';
                     }
                     emptyDiv.innerHTML = `<span class="empty-state__icon">${icon}</span><p>${text}</p><p style="color:#bfb5a5;">${sub}</p>`;
                     cardGrid.appendChild(emptyDiv);
@@ -560,13 +654,11 @@
                 card.className = `card card--${status}`;
                 card.setAttribute('data-id', record.id);
 
-                // 徽章
                 const badgeText = status === 'active' ? '販售中' : (status === 'done' ? '已售出' : '已下架');
                 const badge = document.createElement('span');
                 badge.className = 'card__status-badge';
                 badge.textContent = badgeText;
 
-                // 內容
                 const title = document.createElement('h3');
                 title.className = 'card__title';
                 title.textContent = record.itemName || '(未命名物品)';
@@ -582,55 +674,41 @@
                 const meta = document.createElement('div');
                 meta.className = 'card__meta';
                 const timeStr = _formatDate(record.createdAt);
-                meta.innerHTML = `🕐 <span>刊登於 ${timeStr}</span>`;
+                meta.innerHTML = `?? <span>刊登於 ${timeStr}</span>`;
 
-                // 動作區塊
                 const actions = document.createElement('div');
                 actions.className = 'card__actions';
 
                 if (status === 'active') {
-                    // 標記已售出
                     const doneBtn = document.createElement('button');
                     doneBtn.className = 'btn-action btn-action--primary';
-                    doneBtn.innerHTML = '✅ 標記已售出';
+                    doneBtn.innerHTML = '? 標記已售出';
                     doneBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         updateRecord(record.id, { status: 'done' });
                         _refreshDisplay();
-                        _showToast('🏷️ 已標記為「已售出」');
+                        _showToast('??? 已標記為「已售出」');
                     });
-                    // 取消上架（新增功能）
                     const cancelBtn = document.createElement('button');
                     cancelBtn.className = 'btn-action btn-action--warning';
-                    cancelBtn.innerHTML = '🚫 取消上架';
+                    cancelBtn.innerHTML = '?? 取消上架';
                     cancelBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         updateRecord(record.id, { status: 'cancelled' });
                         _refreshDisplay();
-                        _showToast('📴 物品已下架');
+                        _showToast('?? 物品已下架');
                     });
                     actions.appendChild(doneBtn);
                     actions.appendChild(cancelBtn);
-                } else if (status === 'done') {
+                } else {
                     const relistBtn = document.createElement('button');
                     relistBtn.className = 'btn-action btn-action--primary';
-                    relistBtn.innerHTML = '🔄 重新上架';
+                    relistBtn.innerHTML = '?? 重新上架';
                     relistBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         updateRecord(record.id, { status: 'active' });
                         _refreshDisplay();
-                        _showToast('🟢 已重新上架為「販售中」');
-                    });
-                    actions.appendChild(relistBtn);
-                } else if (status === 'cancelled') {
-                    const relistBtn = document.createElement('button');
-                    relistBtn.className = 'btn-action btn-action--primary';
-                    relistBtn.innerHTML = '🔄 重新上架';
-                    relistBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        updateRecord(record.id, { status: 'active' });
-                        _refreshDisplay();
-                        _showToast('🟢 已重新上架為「販售中」');
+                        _showToast('?? 已重新上架為「販售中」');
                     });
                     actions.appendChild(relistBtn);
                 }
@@ -662,7 +740,7 @@
                 try {
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
                 } catch (e) {
-                    _showToast('⚠️ 儲存失敗，請檢查瀏覽器儲存空間');
+                    _showToast('?? 儲存失敗，請檢查瀏覽器儲存空間');
                 }
             }
 
@@ -681,7 +759,7 @@
                 let filtered;
                 if (currentFilter === 'active') filtered = all.filter(r => r.status === 'active');
                 else if (currentFilter === 'done') filtered = all.filter(r => r.status === 'done');
-                else filtered = [...all]; // all 包含 cancelled
+                else filtered = [...all];
                 renderList(filtered);
             }
 
@@ -690,9 +768,9 @@
                 e.preventDefault();
                 const itemName = inputItemName.value.trim();
                 const priceRaw = inputPrice.value.trim();
-                if (!itemName) { _showToast('⚠️ 請填寫物品名稱'); inputItemName.focus(); return; }
+                if (!itemName) { _showToast('?? 請填寫物品名稱'); inputItemName.focus(); return; }
                 if (!priceRaw || isNaN(Number(priceRaw)) || Number(priceRaw) < 1) {
-                    _showToast('⚠️ 價格必須是大於 0 的數字'); inputPrice.focus(); return;
+                    _showToast('?? 價格必須是大於 0 的數字'); inputPrice.focus(); return;
                 }
                 const record = createRecord({
                     itemName,
@@ -703,7 +781,7 @@
                 form.reset();
                 inputItemName.focus();
                 _refreshDisplay();
-                _showToast('✅ 物品刊登成功！');
+                _showToast('? 物品刊登成功！');
             });
 
             filterBtns.forEach(btn => {
@@ -717,10 +795,10 @@
                 });
             });
 
-            // 初始載入
-            _refreshDisplay();
+            // 啟動非同步初始化
+            initData();
             inputItemName.focus();
-            console.log('✅ 二手交換平台（含取消上架）初始化完成');
+            console.log('? 二手交換平台（已連接 Google Sheet）初始化完成');
         })();
     </script>
 </body>
