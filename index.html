@@ -25,7 +25,6 @@
             --shadow-sm: 0 2px 6px rgba(44, 36, 22, 0.04), 0 1px 3px rgba(44, 36, 22, 0.03);
             --shadow-md: 0 6px 18px rgba(44, 36, 22, 0.06), 0 2px 6px rgba(44, 36, 22, 0.04);
             --shadow-lg: 0 12px 28px rgba(44, 36, 22, 0.08), 0 4px 10px rgba(44, 36, 22, 0.05);
-            --shadow-xl: 0 20px 40px rgba(44, 36, 22, 0.10), 0 6px 14px rgba(44, 36, 22, 0.06);
             --radius-sm: 10px;
             --radius: 16px;
             --radius-lg: 20px;
@@ -277,7 +276,6 @@
             font-weight: 650;
         }
 
-        /* 搜尋框樣式 */
         .search-box {
             display: flex;
             align-items: center;
@@ -309,6 +307,67 @@
         .search-box .search-icon {
             color: var(--text-muted);
             font-size: 1rem;
+        }
+
+        /* ===== CHART SECTION ===== */
+        #chart-section {
+            margin-bottom: 24px;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .chart-title {
+            font-size: 0.9rem;
+            font-weight: 650;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+        }
+        .chart-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .chart-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .chart-count {
+            font-weight: 700;
+            color: var(--text);
+        }
+        .chart-bar-bg {
+            height: 12px;
+            background: var(--border-light);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .chart-bar-fill {
+            height: 100%;
+            border-radius: 20px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+        .chart-bar-fill.active-bar {
+            background: var(--active-color);
+        }
+        .chart-bar-fill.done-bar {
+            background: var(--done-color);
+        }
+        .chart-bar-fill.cancelled-bar {
+            background: var(--cancelled-color);
         }
 
         /* ===== CARD GRID ===== */
@@ -568,7 +627,6 @@
                 font-size: 1.25rem;
             }
         }
-
         @media (max-width: 400px) {
             .filter-btn {
                 padding: 7px 12px;
@@ -626,6 +684,40 @@
             </div>
             <span class="record-count" id="record-count">共 <strong>0</strong> 筆物品</span>
         </div>
+
+        <!-- 新增統計圖表區 -->
+        <section id="chart-section">
+            <div class="chart-title">📊 物品狀態分佈</div>
+            <div class="chart-grid">
+                <div class="chart-item">
+                    <div class="chart-label">
+                        <span>🟢 販售中</span>
+                        <span class="chart-count" id="chart-active-count">0</span>
+                    </div>
+                    <div class="chart-bar-bg">
+                        <div class="chart-bar-fill active-bar" id="chart-active-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="chart-item">
+                    <div class="chart-label">
+                        <span>🏷️ 已售出</span>
+                        <span class="chart-count" id="chart-done-count">0</span>
+                    </div>
+                    <div class="chart-bar-bg">
+                        <div class="chart-bar-fill done-bar" id="chart-done-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="chart-item">
+                    <div class="chart-label">
+                        <span>🚫 已下架</span>
+                        <span class="chart-count" id="chart-cancelled-count">0</span>
+                    </div>
+                    <div class="chart-bar-bg">
+                        <div class="chart-bar-fill cancelled-bar" id="chart-cancelled-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <section class="card-grid" id="card-grid" aria-label="物品列表"></section>
     </main>
@@ -778,7 +870,7 @@
                 _refreshDisplay();
             }
 
-            // ========== 渲染 ==========
+            // ========== 渲染函式 ==========
             function renderList(recordsToShow) {
                 if (!Array.isArray(recordsToShow)) return;
 
@@ -884,6 +976,23 @@
                 return card;
             }
 
+            // ========== 新增：圖表渲染 ==========
+            function renderChart() {
+                const all = loadData();
+                const total = all.length || 1; // 避免除以零
+                const activeCount = all.filter(r => r.status === 'active').length;
+                const doneCount = all.filter(r => r.status === 'done').length;
+                const cancelledCount = all.filter(r => r.status === 'cancelled').length;
+
+                document.getElementById('chart-active-count').textContent = activeCount;
+                document.getElementById('chart-done-count').textContent = doneCount;
+                document.getElementById('chart-cancelled-count').textContent = cancelledCount;
+
+                document.getElementById('chart-active-bar').style.width = (activeCount / total * 100) + '%';
+                document.getElementById('chart-done-bar').style.width = (doneCount / total * 100) + '%';
+                document.getElementById('chart-cancelled-bar').style.width = (cancelledCount / total * 100) + '%';
+            }
+
             // ========== 輔助函式 ==========
             function _formatDate(isoStr) {
                 if (!isoStr) return '未知時間';
@@ -935,6 +1044,7 @@
                     });
                 }
                 renderList(filtered);
+                renderChart(); // 新增呼叫
             }
 
             // ========== 事件綁定 ==========
@@ -977,7 +1087,7 @@
             // 啟動
             initData();
             inputItemName.focus();
-            console.log('✅ 二手交換平台（含搜尋 + 美化）初始化完成');
+            console.log('✅ 二手交換平台（含搜尋 + 圖表）初始化完成');
         })();
     </script>
 </body>
